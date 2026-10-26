@@ -89,12 +89,17 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
-  price: number;
+  price_cents: number;
   image_url: string | null;
   collection: string | null;
-  in_stock: boolean;
-  featured: boolean;
+  active: boolean;
+  stock: number;
   created_at: string;
+}
+
+/* helper: centavos → reais */
+function centsToReais(cents: number) {
+  return (cents ?? 0) / 100;
 }
 
 interface CartItem {
@@ -130,8 +135,7 @@ export function CustomerStore({
       const { data } = await supabase
         .from('products')
         .select('*')
-        .eq('in_stock', true)
-        .order('featured', { ascending: false })
+        .eq('active', true)
         .order('created_at', { ascending: false });
       if (data) setProducts(data);
       setLoadingProducts(false);
@@ -167,7 +171,7 @@ export function CustomerStore({
   }, [products, collection, search]);
 
   const cartTotal = useMemo(
-    () => cart.reduce((s, c) => s + c.product.price * c.quantity, 0),
+    () => cart.reduce((s, c) => s + centsToReais(c.product.price_cents) * c.quantity, 0),
     [cart]
   );
   const cartCount = useMemo(
@@ -201,7 +205,7 @@ export function CustomerStore({
   /* checkout via WhatsApp */
   const sendWhatsApp = () => {
     const lines = cart.map(
-      (c) => `• ${corrigirTexto(c.product.name)} (x${c.quantity}) — ${formatBRL(c.product.price * c.quantity)}`
+      (c) => `• ${corrigirTexto(c.product.name)} (x${c.quantity}) — ${formatBRL(centsToReais(c.product.price_cents) * c.quantity)}`
     );
     const msg = encodeURIComponent(
       `Olá! 💖 Gostaria de fazer um pedido na Clarimê:\n\n${lines.join('\n')}\n\n*Total: ${formatBRL(cartTotal)}*\n\nPagamento via PIX 🔑`
@@ -288,7 +292,7 @@ export function CustomerStore({
                           <div className="flex-1">
                             <p className="text-sm font-semibold">{corrigirTexto(item.product.name)}</p>
                             <p className="text-xs text-[#C9A0E8]">
-                              {formatBRL(item.product.price)}
+                              {formatBRL(centsToReais(item.product.price_cents))}
                             </p>
                             <div className="mt-1 flex items-center gap-2">
                               <button
@@ -436,9 +440,9 @@ export function CustomerStore({
                       <Sparkles size={40} className="text-[#FFD54F]/40" />
                     </div>
                   )}
-                  {product.featured && (
+                  {product.stock !== undefined && product.stock <= 3 && product.stock > 0 && (
                     <Badge className="absolute left-2 top-2 border-0 bg-[#FFD54F] text-[#170824]">
-                      <Star size={10} className="mr-1" /> Destaque
+                      <Star size={10} className="mr-1" /> Últimas unidades
                     </Badge>
                   )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
@@ -453,7 +457,7 @@ export function CustomerStore({
                     <p className="mt-0.5 text-xs text-[#C9A0E8]/60">{product.collection}</p>
                   )}
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="font-bold text-[#FF2D78]">{formatBRL(product.price)}</span>
+                    <span className="font-bold text-[#FF2D78]">{formatBRL(centsToReais(product.price_cents))}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -507,7 +511,7 @@ export function CustomerStore({
               )}
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-[#FF2D78]">
-                  {formatBRL(selectedProduct.price)}
+                  {formatBRL(centsToReais(selectedProduct.price_cents))}
                 </span>
                 <Button
                   onClick={() => {
@@ -542,7 +546,7 @@ export function CustomerStore({
                     {corrigirTexto(item.product.name)} x{item.quantity}
                   </span>
                   <span className="text-[#FF2D78]">
-                    {formatBRL(item.product.price * item.quantity)}
+                    {formatBRL(centsToReais(item.product.price_cents) * item.quantity)}
                   </span>
                 </div>
               ))}
