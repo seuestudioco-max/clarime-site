@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   ShoppingCart, Search, Heart, Star, Sparkles, X, Plus, Minus, Trash2,
-  Music, VolumeX, ChevronRight, Send, CreditCard, Copy, Check,
+  ChevronRight, Send, CreditCard, Copy, Check,
   Filter, ArrowUp, Phone, Mail, Instagram, MapPin, Package, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ function corrigirTexto(texto: string): string {
       })
     );
     const corrigido = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    const cnt = (v: string) => (v.match(/Ã|Â|â€|�/g) || []).length;
+    const cnt = (v: string) => (v.match(/Ã|Â|â€| /g) || []).length;
     return cnt(corrigido) < cnt(texto) ? corrigido : texto;
   } catch {
     return texto;
@@ -39,7 +39,7 @@ function corrigirTexto(texto: string): string {
 }
 
 function formatBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 /* ───────────── Floating Beads ───────────── */
@@ -81,108 +81,7 @@ function FloatingBeads() {
 
 /* ───────────── Music Player ───────────── */
 
-function MusicPlayer() {
-  const [playing, setPlaying] = useState(false);
-  const [started, setStarted] = useState(false);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const melody = useMemo(
-    () => [
-      { f: 523.25, d: 0.3 }, { f: 587.33, d: 0.3 }, { f: 659.25, d: 0.3 },
-      { f: 698.46, d: 0.4 }, { f: 659.25, d: 0.2 }, { f: 587.33, d: 0.3 },
-      { f: 523.25, d: 0.5 }, { f: 0, d: 0.2 },
-      { f: 698.46, d: 0.3 }, { f: 783.99, d: 0.3 }, { f: 880.0, d: 0.4 },
-      { f: 783.99, d: 0.2 }, { f: 698.46, d: 0.3 }, { f: 659.25, d: 0.5 },
-      { f: 0, d: 0.3 },
-      { f: 523.25, d: 0.25 }, { f: 523.25, d: 0.25 }, { f: 587.33, d: 0.3 },
-      { f: 659.25, d: 0.4 }, { f: 523.25, d: 0.3 }, { f: 440.0, d: 0.3 },
-      { f: 523.25, d: 0.6 }, { f: 0, d: 0.4 },
-    ],
-    []
-  );
-
-  const playNote = useCallback(
-    (ctx: AudioContext, freq: number, dur: number, startTime: number) => {
-      if (freq === 0) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(0.08, startTime + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + dur);
-    },
-    []
-  );
-
-  const playMelody = useCallback(() => {
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-    let t = ctx.currentTime + 0.1;
-    for (const note of melody) {
-      playNote(ctx, note.f, note.d, t);
-      t += note.d + 0.05;
-    }
-  }, [melody, playNote]);
-
-  const toggle = useCallback(() => {
-    if (!started) {
-      const ctx = new AudioContext();
-      ctxRef.current = ctx;
-      setStarted(true);
-      setPlaying(true);
-      setTimeout(() => {
-        playMelody();
-        intervalRef.current = setInterval(playMelody, 9000);
-      }, 100);
-      return;
-    }
-    if (playing) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      ctxRef.current?.suspend();
-      setPlaying(false);
-    } else {
-      ctxRef.current?.resume();
-      playMelody();
-      intervalRef.current = setInterval(playMelody, 9000);
-      setPlaying(true);
-    }
-  }, [started, playing, playMelody]);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      ctxRef.current?.close();
-    };
-  }, []);
-
-  return (
-    <button
-      onClick={toggle}
-      className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#FF2D78] to-[#7B2D8E] text-white shadow-lg transition-transform hover:scale-110"
-      title={playing ? 'Pausar música' : 'Tocar música'}
-    >
-      {playing ? (
-        <div className="flex items-end gap-[3px]">
-          {[0, 0.15, 0.3].map((d) => (
-            <span
-              key={d}
-              className="inline-block w-[3px] rounded bg-white"
-              style={{ animation: `equalizer 0.6s ease-in-out ${d}s infinite alternate`, height: 4 }}
-            />
-          ))}
-        </div>
-      ) : (
-        <VolumeX size={20} />
-      )}
-    </button>
-  );
-}
+/* MusicPlayer removido */
 
 /* ───────────── types ───────────── */
 
@@ -322,7 +221,7 @@ export function CustomerStore({
   return (
     <div className="relative min-h-screen bg-[#170824] text-white">
       <FloatingBeads />
-      <MusicPlayer />
+      {/* Music player removido */}
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-40 border-b border-[#7B2D8E]/30 bg-[#170824]/90 backdrop-blur-md">
